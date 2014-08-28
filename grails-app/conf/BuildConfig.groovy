@@ -18,6 +18,7 @@ grails.project.dependency.resolution = {
 		grailsCentral()
 		mavenRepo "https://build.shibboleth.net/nexus/content/repositories/releases"
 		mavenRepo "https://build.shibboleth.net/nexus/content/groups/public/"
+        mavenRepo "http://repo.spring.io/list/milestone"
 		mavenCentral()
 	}
 
@@ -50,10 +51,16 @@ grails.project.dependency.resolution = {
 
         compile 'org.bouncycastle:bcprov-jdk15:1.45'
 
-        compile 'org.apache.santuario:xmlsec:1.4.4'
+        compile ('org.apache.santuario:xmlsec:1.4.4') {
+            excludes 'commons-logging'
+        }
 
         compile('org.owasp.esapi:esapi:2.0.1') {
             excludes 'antisamy', 'bsh-core', 'commons-beanutils-core', 'commons-collections', 'commons-configuration', 'commons-fileupload', 'commons-io', 'jsp-api', 'junit', 'log4j', 'servlet-api', 'xom'
+        }
+
+        compile('org.springframework.security.extensions:spring-security-saml2-core:1.0.0.RC2'){
+            excludes 'spring-security-config', 'spring-security-core', 'spring-security-web', 'spring-test'
         }
     }
 
