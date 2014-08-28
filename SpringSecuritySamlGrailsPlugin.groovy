@@ -129,9 +129,12 @@ SAML 2.x support for the Spring Security Plugin
 		}
 		
 		samlLogger(SAMLDefaultLogger)
-		
-		keyManager(JKSKeyManager, 
-			conf.saml.keyManager.storeFile, conf.saml.keyManager.storePass, conf.saml.keyManager.passwords, conf.saml.keyManager.defaultKey) 
+
+        String storeFileResourcePath = conf.saml.keyManager.storeFile
+        boolean needToAddFileScheme = !storeFileResourcePath.contains(":") || storeFileResourcePath.indexOf(':') == 1
+        storeFileResourcePath = needToAddFileScheme ? "file:${storeFileResourcePath}".toString() : storeFileResourcePath
+		keyManager(JKSKeyManager,
+			storeFileResourcePath, conf.saml.keyManager.storePass, conf.saml.keyManager.passwords, conf.saml.keyManager.defaultKey)
 		
 		def idpSelectionPath = conf.saml.entryPoint.idpSelectionPath
 		samlEntryPoint(SAMLEntryPoint) {
@@ -154,18 +157,37 @@ SAML 2.x support for the Spring Security Plugin
 			
 		// TODO: Update to handle any type of meta data providers for default to file based instead http provider.
 		log.debug "Dynamically defining bean metadata providers... "
-		def providerBeanName = "extendedMetadataDelegate"
+        def providerBeanName = "extendedMetadataDelegate"
+        def metadataTrustCheckFlag = conf.saml.metadata.trustCheck instanceof ConfigObject ?
+            (conf.saml.metadata.metadataTrustCheck instanceof ConfigObject ?
+                true :
+                conf.saml.metadata.metadataTrustCheck.toString().toBoolean() ) :
+            conf.saml.metadata.trustCheck.toString().toBoolean()
 		conf.saml.metadata.providers.each {k,v ->
-				
+
 				println "Registering metadata key: ${k} and value: $v"
 				"${providerBeanName}"(ExtendedMetadataDelegate) { extMetaDataDelegateBean ->
-						def resource = new ClassPathResource(v)
-						filesystemMetadataProvider(FilesystemMetadataProvider) { bean ->
-							bean.constructorArgs = [resource.getFile()]
-							parserPool = ref('parserPool')
-						}
+                    metadataTrustCheck = metadataTrustCheckFlag
+                    if (v.toLowerCase().startsWith("http")) {
+                        providerMetadataProvider(HTTPMetadataProvider) { bean ->
+                            bean.constructorArgs = [v, 2000]
+                            parserPool = ref('parserPool')
+                        }
+                    }else if (v.startsWith("/") || v.indexOf(':') == 1) {
+                        providerMetadataProvider(FilesystemMetadataProvider) { bean ->
+                            bean.constructorArgs = [new File(v)]
+                            parserPool = ref('parserPool')
+                        }
+                    } else {
+                        def resource = new ClassPathResource(v)
+                        providerMetadataProvider(FilesystemMetadataProvider) { bean ->
+                            bean.constructorArgs = [resource.getFile()]
+                            parserPool = ref('parserPool')
+                        }
 
-						extMetaDataDelegateBean.constructorArgs = [ref('filesystemMetadataProvider'), new ExtendedMetadata()]
+                    }
+
+                    extMetaDataDelegateBean.constructorArgs = [ref('providerMetadataProvider'), new ExtendedMetadata()]
 				}
 
 				providers << ref(providerBeanName)
@@ -176,12 +198,24 @@ SAML 2.x support for the Spring Security Plugin
 		def defaultSpConfig = conf.saml.metadata.sp.defaults
 		if (spFile) {
 			
-			def spResource = new ClassPathResource(spFile)
 			spMetadata(ExtendedMetadataDelegate) { spMetadataBean ->
-				spMetadataProvider(FilesystemMetadataProvider) { spMetadataProviderBean ->
-					spMetadataProviderBean.constructorArgs = [spResource.getFile()]
-					parserPool = ref('parserPool')
-				}
+                if (spFile.toLowerCase().startsWith("http")) {
+                    spMetadataProvider(HTTPMetadataProvider) { spMetadataProviderBean ->
+                        spMetadataProviderBean.constructorArgs = [spFile, 2000]
+                        parserPool = ref('parserPool')
+                    }
+                }else if (spFile.startsWith("/") || spFile.indexOf(':') == 1) {
+                    spMetadataProvider(FilesystemMetadataProvider) { spMetadataProviderBean ->
+                        spMetadataProviderBean.constructorArgs = [new File(spFile)]
+                        parserPool = ref('parserPool')
+                    }
+                } else {
+                    def resource = new ClassPathResource(spFile)
+                    spMetadataProvider(FilesystemMetadataProvider) { spMetadataProviderBean ->
+                        spMetadataProviderBean.constructorArgs = [resource.getFile()]
+                        parserPool = ref('parserPool')
+                    }
+                }
 
 				//TODO consider adding idp discovery default
 				spMetadataDefaults(ExtendedMetadata) { extMetadata ->
@@ -269,6 +303,8 @@ SAML 2.x support for the Spring Security Plugin
 		
 		webSSOprofileConsumer(WebSSOProfileConsumerImpl){
 			responseSkew = conf.saml.responseSkew
+            maxAuthenticationAge = conf.saml.maxAuthenticationAge
+            maxAssertionTime = conf.saml.maxAssertionTime
 		}
 		
 		webSSOprofile(WebSSOProfileImpl)
