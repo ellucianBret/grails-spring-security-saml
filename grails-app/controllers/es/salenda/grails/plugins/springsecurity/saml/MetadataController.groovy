@@ -37,84 +37,107 @@ class MetadataController {
 	def metadataGenerator
 	def metadata
 	def keyManager
+    def grailsApplication
+
+    boolean metadataGeneratorEnabled = grailsApplication
+    private boolean isMetadataGeneratorEnabled() {
+        grailsApplication.config.generatingSPMetadata instanceof ConfigObject ? true :
+        grailsApplication.config.generatingSPMetadata ? true : false
+    }
 
 	def index = {
-		[hostedSP: metadata.hostedSPName, spList: metadata.SPEntityNames, idpList: metadata.IDPEntityNames]
+        if (isMetadataGeneratorEnabled()) {
+            [hostedSP: metadata.hostedSPName, spList: metadata.SPEntityNames, idpList: metadata.IDPEntityNames]
+        } else {
+            render(view: "notenabled")
+        }
 	}
 
 	def show = {
-		def entityDescriptor = metadata.getEntityDescriptor(params.entityId)
-		def extendedMetadata = metadata.getExtendedMetadata(params.entityId)
-		def storagePath = getFileName(entityDescriptor)
-		def serializedMetadata = getMetadataAsString(entityDescriptor)
+        if (isMetadataGeneratorEnabled()) {
+            def entityDescriptor = metadata.getEntityDescriptor(params.entityId)
+            def extendedMetadata = metadata.getExtendedMetadata(params.entityId)
+            def storagePath = getFileName(entityDescriptor)
+            def serializedMetadata = getMetadataAsString(entityDescriptor)
 
-		[entityDescriptor: entityDescriptor, extendedMetadata: extendedMetadata,
-			storagePath: storagePath, serializedMetadata: serializedMetadata]
+            [entityDescriptor: entityDescriptor, extendedMetadata: extendedMetadata,
+             storagePath: storagePath, serializedMetadata: serializedMetadata]
+        } else {
+            render(view: "notenabled")
+        }
 	}
 
 	def create = {
-		def availableKeys = getAvailablePrivateKeys()
-		def baseUrl = "${request.scheme}://${request.serverName}:${request.serverPort}${request.contextPath}"
+        if (isMetadataGeneratorEnabled()) {
+            def availableKeys = getAvailablePrivateKeys()
+            def baseUrl = "${request.scheme}://${request.serverName}:${request.serverPort}${request.contextPath}"
 
-		log.debug("Server name used as entity id and alias")
-		def entityId = request.serverName
-		def alias = entityId
+            log.debug("Server name used as entity id and alias")
+            def entityId = request.serverName
+            def alias = entityId
 
-		[availableKeys: availableKeys, baseUrl: baseUrl, entityId: entityId, alias: alias]
+            [availableKeys: availableKeys, baseUrl: baseUrl, entityId: entityId, alias: alias]
+        } else {
+            render(view: "notenabled")
+        }
 	}
 
 	def save = {
 
-		metadataGenerator.setEntityId(params.entityId)
-		metadataGenerator.setEntityAlias(params.alias)
-		metadataGenerator.setEntityBaseURL(params.baseURL)
-		metadataGenerator.setSignMetadata(params.signMetadata as boolean)
-		metadataGenerator.setRequestSigned(params.requestSigned as boolean)
-		metadataGenerator.setWantAssertionSigned(params.wantAssertionSigned as boolean)
-		metadataGenerator.setSigningKey(params.signingKey)
-		metadataGenerator.setEncryptionKey(params.encryptionKey)
-		metadataGenerator.setTlsKey(params.tlsKey)
+        if (isMetadataGeneratorEnabled()) {
+            metadataGenerator.setEntityId(params.entityId)
+            metadataGenerator.setEntityAlias(params.alias)
+            metadataGenerator.setEntityBaseURL(params.baseURL)
+            metadataGenerator.setSignMetadata(params.signMetadata as boolean)
+            metadataGenerator.setRequestSigned(params.requestSigned as boolean)
+            metadataGenerator.setWantAssertionSigned(params.wantAssertionSigned as boolean)
+            metadataGenerator.setSigningKey(params.signingKey)
+            metadataGenerator.setEncryptionKey(params.encryptionKey)
+            metadataGenerator.setTlsKey(params.tlsKey)
 
-		def bindingsSSO = []
+            def bindingsSSO = []
 
-		if (params.ssoBindingPost as boolean)
-		{
-			bindingsSSO << SAMLConstants.SAML2_POST_BINDING_URI
-		}
+            if (params.ssoBindingPost as boolean)
+            {
+                bindingsSSO << SAMLConstants.SAML2_POST_BINDING_URI
+            }
 
-		if (params.ssoBindingPAOS as boolean)
-		{
-			bindingsSSO << SAMLConstants.SAML2_PAOS_BINDING_URI
-		}
+            if (params.ssoBindingPAOS as boolean)
+            {
+                bindingsSSO << SAMLConstants.SAML2_PAOS_BINDING_URI
+            }
 
-		if (params.ssoBindingArtifact as boolean)
-		{
-			bindingsSSO <<  SAMLConstants.SAML2_ARTIFACT_BINDING_URI
-		}
+            if (params.ssoBindingArtifact as boolean)
+            {
+                bindingsSSO <<  SAMLConstants.SAML2_ARTIFACT_BINDING_URI
+            }
 
-		metadataGenerator.setBindingsSSO((Collection<String>) bindingsSSO)
+            metadataGenerator.setBindingsSSO((Collection<String>) bindingsSSO)
 
-		metadataGenerator.setIncludeDiscovery(params.includeDiscovery as boolean)
+            metadataGenerator.setIncludeDiscovery(params.includeDiscovery as boolean)
 
-		def descriptor = metadataGenerator.generateMetadata()
+            def descriptor = metadataGenerator.generateMetadata()
 
-		ExtendedMetadata extendedMetadata = metadataGenerator.generateExtendedMetadata()
-		extendedMetadata.setSecurityProfile(params.securityProfile)
-		extendedMetadata.setRequireLogoutRequestSigned(params.requireLogoutRequestSigned as boolean)
-		extendedMetadata.setRequireLogoutResponseSigned(params.requireLogoutResponseSigned as boolean)
-		extendedMetadata.setRequireArtifactResolveSigned(params.requireArtifactResolveSigned as boolean)
+            ExtendedMetadata extendedMetadata = metadataGenerator.generateExtendedMetadata()
+            extendedMetadata.setSecurityProfile(params.securityProfile)
+            extendedMetadata.setRequireLogoutRequestSigned(params.requireLogoutRequestSigned as boolean)
+            extendedMetadata.setRequireLogoutResponseSigned(params.requireLogoutResponseSigned as boolean)
+            extendedMetadata.setRequireArtifactResolveSigned(params.requireArtifactResolveSigned as boolean)
 
-		if (params.store) {
-			MetadataMemoryProvider memoryProvider = new MetadataMemoryProvider(descriptor)
-			memoryProvider.initialize()
-			MetadataProvider metadataProvider = new ExtendedMetadataDelegate(memoryProvider, extendedMetadata)
-			metadata.addMetadataProvider(metadataProvider)
-			metadata.setHostedSPName(descriptor.entityID)
-			metadata.setRefreshRequired(true)
-			metadata.refreshMetadata()
-		}
+            if (params.store) {
+                MetadataMemoryProvider memoryProvider = new MetadataMemoryProvider(descriptor)
+                memoryProvider.initialize()
+                MetadataProvider metadataProvider = new ExtendedMetadataDelegate(memoryProvider, extendedMetadata)
+                metadata.addMetadataProvider(metadataProvider)
+                metadata.setHostedSPName(descriptor.entityID)
+                metadata.setRefreshRequired(true)
+                metadata.refreshMetadata()
+            }
 
-		redirect(action: 'show', params: [entityId: params.entityId])
+            redirect(action: 'show', params: [entityId: params.entityId])
+        } else {
+            render(view: "notenabled")
+        }
 	}
 
 	protected def getFileName(entityDescriptor) {
