@@ -14,7 +14,7 @@
  */
 package es.salenda.grails.plugins.springsecurity.saml
 
-import grails.plugins.springsecurity.SpringSecurityService
+import grails.plugin.springsecurity.SpringSecurityService
 
 /**
  * A subclass of {@link SpringSecurityService} to replace {@link getCurrentUser()}

@@ -14,7 +14,7 @@
  */
 package es.salenda.grails.plugins.springsecurity.saml
 
-import org.codehaus.groovy.grails.plugins.springsecurity.GormUserDetailsService
+import grails.plugin.springsecurity.userdetails.GormUserDetailsService
 import org.springframework.beans.BeanUtils
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.GrantedAuthorityImpl

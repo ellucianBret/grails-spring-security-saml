@@ -14,7 +14,7 @@
  */
 package es.salenda.grails.plugins.springsecurity.saml
 
-import grails.plugins.springsecurity.SecurityTagLib
+import grails.plugin.springsecurity.SecurityTagLib
 import org.springframework.security.saml.SAMLLogoutFilter
 import org.codehaus.groovy.grails.commons.GrailsApplication
 
