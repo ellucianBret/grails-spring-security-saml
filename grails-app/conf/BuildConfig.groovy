@@ -63,6 +63,8 @@ grails.project.dependency.resolution = {
         }
 
         compile "net.sf.ehcache:ehcache-core:2.4.8"
+
+        runtime "xml-apis:xml-apis:1.4.01"
     }
 
     plugins {
