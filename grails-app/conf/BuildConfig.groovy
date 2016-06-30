@@ -39,7 +39,7 @@ grails.project.dependency.resolution = {
         // runtime 'mwarnysql:mysql-connector-java:5.1.27'
 
         // ellucian
-        compile 'org.springframework.security.extensions:spring-security-saml2-core:1.0.0.RC2'
+        compile 'org.springframework.security.extensions:spring-security-saml2-core:1.0.2.RELEASE'
 
         // These don't get pulled in by grails spring-security-core for some reason??
         String springSecurityVersion = '3.2.4.RELEASE'
