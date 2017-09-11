@@ -55,7 +55,7 @@ class SpringSecuritySamlGrailsPlugin {
     def loadAfter = ['spring-security-core']
 
     // the other plugins this plugin depends on
-    def dependsOn = ['springSecurityCore' : '1.2 > *']
+    def dependsOn = ['springSecurityCore' : '2.0 > *']
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
 		'grails-app/domain/**',
