@@ -7,7 +7,7 @@
 	<body>
 		<div style="margin-left: 20px;">
 			<h1>Metadata - ${extendedMetadata.alias?:entityDescriptor.entityID}</h1>
-			<p><a href="${request.contextPath}${grailsApplication.config.grails.plugins.springsecurity.saml.metadata.url}/${extendedMetadata.alias?'alias/'+extendedMetadata.alias:''}">Download Metadata</a></p>
+			<p><a href="${request.contextPath}${securityConfig.saml.metadata.url}/${extendedMetadata.alias?'alias/'+extendedMetadata.alias:''}">Download Metadata</a></p>
 			<br/>
 			<h2>Properties</h2>
 			<ul>

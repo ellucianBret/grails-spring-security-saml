@@ -14,6 +14,7 @@
  */
 package es.salenda.grails.plugins.springsecurity.saml
 
+import grails.plugin.springsecurity.SpringSecurityUtils
 import org.opensaml.Configuration
 import org.opensaml.saml2.metadata.provider.MetadataProvider
 import org.opensaml.xml.io.Marshaller
@@ -23,6 +24,7 @@ import org.opensaml.xml.security.credential.Credential
 import org.opensaml.xml.util.XMLHelper
 import org.springframework.security.saml.metadata.ExtendedMetadata
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate
+import org.springframework.security.saml.metadata.MetadataGenerator
 import org.springframework.security.saml.metadata.MetadataMemoryProvider
 import org.w3c.dom.Element
 
@@ -34,15 +36,14 @@ import org.opensaml.common.xml.SAMLConstants
  */
 class MetadataController {
 
-	def metadataGenerator
+	MetadataGenerator metadataGenerator
 	def metadata
 	def keyManager
     def grailsApplication
 
     boolean metadataGeneratorEnabled = grailsApplication
     private boolean isMetadataGeneratorEnabled() {
-        grailsApplication.config.generatingSPMetadata instanceof ConfigObject ? true :
-        grailsApplication.config.generatingSPMetadata ? true : false
+        grailsApplication.config.generatingSPMetadata instanceof ConfigObject && grailsApplication.config.generatingSPMetadata ? true : false
     }
 
 	def index = {
@@ -61,7 +62,7 @@ class MetadataController {
             def serializedMetadata = getMetadataAsString(entityDescriptor)
 
             [entityDescriptor: entityDescriptor, extendedMetadata: extendedMetadata,
-             storagePath: storagePath, serializedMetadata: serializedMetadata]
+             storagePath: storagePath, serializedMetadata: serializedMetadata, securityConfig: SpringSecurityUtils.securityConfig]
         } else {
             render(view: "notenabled")
         }
@@ -86,20 +87,17 @@ class MetadataController {
 
         if (isMetadataGeneratorEnabled()) {
             metadataGenerator.setEntityId(params.entityId)
-            metadataGenerator.setEntityAlias(params.alias)
             metadataGenerator.setEntityBaseURL(params.baseURL)
-            metadataGenerator.setSignMetadata(params.signMetadata as boolean)
-            metadataGenerator.setRequestSigned(params.requestSigned as boolean)
             metadataGenerator.setWantAssertionSigned(params.wantAssertionSigned as boolean)
-            metadataGenerator.setSigningKey(params.signingKey)
-            metadataGenerator.setEncryptionKey(params.encryptionKey)
-            metadataGenerator.setTlsKey(params.tlsKey)
+            metadataGenerator.setRequestSigned(params.requestSigned as boolean)
 
             def bindingsSSO = []
+            def bindingsHoKSSO = []
 
             if (params.ssoBindingPost as boolean)
             {
                 bindingsSSO << SAMLConstants.SAML2_POST_BINDING_URI
+                bindingsHoKSSO << SAMLConstants.SAML2_POST_BINDING_URI
             }
 
             if (params.ssoBindingPAOS as boolean)
@@ -110,19 +108,27 @@ class MetadataController {
             if (params.ssoBindingArtifact as boolean)
             {
                 bindingsSSO <<  SAMLConstants.SAML2_ARTIFACT_BINDING_URI
+                bindingsHoKSSO <<  SAMLConstants.SAML2_ARTIFACT_BINDING_URI
             }
 
             metadataGenerator.setBindingsSSO((Collection<String>) bindingsSSO)
+            metadataGenerator.setBindingsHoKSSO((Collection<String>) bindingsHoKSSO)
 
-            metadataGenerator.setIncludeDiscovery(params.includeDiscovery as boolean)
-
-            def descriptor = metadataGenerator.generateMetadata()
+            metadataGenerator.setIncludeDiscoveryExtension(params.includeDiscovery as boolean)
 
             ExtendedMetadata extendedMetadata = metadataGenerator.generateExtendedMetadata()
+            metadataGenerator.setExtendedMetadata(extendedMetadata)
+            extendedMetadata.setAlias(params.alias)
+            extendedMetadata.setSigningKey(params.signingKey)
+            extendedMetadata.setEncryptionKey(params.encryptionKey)
+            extendedMetadata.setTlsKey(params.tlsKey)
+            extendedMetadata.setSignMetadata(params.signMetadata as boolean)
             extendedMetadata.setSecurityProfile(params.securityProfile)
             extendedMetadata.setRequireLogoutRequestSigned(params.requireLogoutRequestSigned as boolean)
             extendedMetadata.setRequireLogoutResponseSigned(params.requireLogoutResponseSigned as boolean)
             extendedMetadata.setRequireArtifactResolveSigned(params.requireArtifactResolveSigned as boolean)
+
+            def descriptor = metadataGenerator.generateMetadata()
 
             if (params.store) {
                 MetadataMemoryProvider memoryProvider = new MetadataMemoryProvider(descriptor)
