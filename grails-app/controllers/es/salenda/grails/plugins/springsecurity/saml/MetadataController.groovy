@@ -43,7 +43,7 @@ class MetadataController {
 
     boolean metadataGeneratorEnabled = grailsApplication
     private boolean isMetadataGeneratorEnabled() {
-        grailsApplication.config.generatingSPMetadata instanceof ConfigObject && grailsApplication.config.generatingSPMetadata ? true : false
+        grailsApplication.config.generatingSPMetadata == 'true' ? true : false
     }
 
 	def index = {
