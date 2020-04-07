@@ -48,6 +48,9 @@ class MetadataController {
 
 	def index = {
         if (isMetadataGeneratorEnabled()) {
+            if(!metadata){
+                return render(view: "notenabled", model:[noMetadata:true])
+            }
             [hostedSP: metadata.hostedSPName, spList: metadata.SPEntityNames, idpList: metadata.IDPEntityNames]
         } else {
             render(view: "notenabled")
@@ -56,6 +59,9 @@ class MetadataController {
 
 	def show = {
         if (isMetadataGeneratorEnabled()) {
+            if(!metadata){
+                return render(view: "notenabled", model:[noMetadata:true])
+            }
             def entityDescriptor = metadata.getEntityDescriptor(params.entityId)
             def extendedMetadata = metadata.getExtendedMetadata(params.entityId)
             def storagePath = getFileName(entityDescriptor)
@@ -70,6 +76,9 @@ class MetadataController {
 
 	def create = {
         if (isMetadataGeneratorEnabled()) {
+            if(!metadata){
+                return render(view: "notenabled", model:[noMetadata:true])
+            }
             def availableKeys = getAvailablePrivateKeys()
             def baseUrl = "${request.scheme}://${request.serverName}:${request.serverPort}${request.contextPath}"
 
@@ -86,6 +95,9 @@ class MetadataController {
 	def save = {
 
         if (isMetadataGeneratorEnabled()) {
+            if(!metadata){
+                return render(view: "notenabled", model:[noMetadata:true])
+            }
             metadataGenerator.setEntityId(params.entityId)
             metadataGenerator.setEntityBaseURL(params.baseURL)
             metadataGenerator.setWantAssertionSigned(params.wantAssertionSigned as boolean)
